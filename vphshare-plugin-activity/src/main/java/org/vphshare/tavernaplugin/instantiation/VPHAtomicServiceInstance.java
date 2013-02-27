@@ -20,11 +20,13 @@ public class VPHAtomicServiceInstance implements AtomicServiceInstance {
     private String asConfigId;
     private Workflow workflow;
     private String servicePath;
+    private String redirectionName;
 
-    public VPHAtomicServiceInstance(String asId, Workflow workflow, String servicePath) {
+    public VPHAtomicServiceInstance(String asId, Workflow workflow, String servicePath, String redirectionName) {
         this.asId = asId;
         this.workflow = workflow;
         this.servicePath = servicePath;
+        this.redirectionName = redirectionName;
     }
 
     @Override
@@ -54,6 +56,9 @@ public class VPHAtomicServiceInstance implements AtomicServiceInstance {
         // Authentication
         client.getParams().setAuthenticationPreemptive(true);
         client.getState().setCredentials(AuthScope.ANY, authentication.getTokenAuthentication());
+        
+        // Make sure that the response is always up-to-date
+        method.addRequestHeader("Cache-Control", "no-cache, no-store");
 
         try {
             // Execute the method
@@ -98,7 +103,8 @@ public class VPHAtomicServiceInstance implements AtomicServiceInstance {
 
     @Override
     public String getEndpointURL() {
-        return "http://vph.cyfronet.pl:8000/" + workflow.getCloudFacadeId() + "/" + asConfigId + "/gimias/" + Workflow.urlencode(servicePath);
+        return "http://vph.cyfronet.pl:8000/" + workflow.getCloudFacadeId() + "/" + asConfigId
+                + "/" + redirectionName+ "/" + Workflow.urlencode(servicePath);
     }
 
     @Override

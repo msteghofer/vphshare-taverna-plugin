@@ -1,6 +1,7 @@
 package org.vphshare.tavernaplugin.instantiation;
 
 import java.io.IOException;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -39,6 +40,11 @@ public class Workflow {
         private WorkflowException(String description) {
             super(description);
         }
+    }
+    
+    private static class PathInfo {
+        private String atomicServiceId;
+        private String redirectionName;
     }
 
     private static Logger logger = Logger.getLogger(Workflow.class);
@@ -97,7 +103,7 @@ public class Workflow {
             JSONObject jsonObject = JSONObject.fromObject(jsonResponse);
             List<Object> asInstances = WorkflowRegister.propertyToList(jsonObject, "atomicServiceInstances");
             for (Object asInstance : asInstances) {
-                String asInstanceName = (String) PropertyUtils.getProperty(asInstance, "name");
+                String asInstanceName = (String) PropertyUtils.getProperty(asInstance, "id");
                 String asInstanceStatus = (String) PropertyUtils.getProperty(asInstance, "status");
                 asStatusMap.put(asInstanceName, asInstanceStatus);
             }
@@ -365,8 +371,8 @@ public class Workflow {
             client.getState().setCredentials(AuthScope.ANY, credentials);
 
             // Create a method instance
-            String url = "https://vph.cyfronet.pl/cloudfacade/workflow/" + cloudFacadeId + "/as/" + configId + "/"
-                    + urlencode(atomicService.getId());
+            String url = CloudFacadeConstants.CLOUDFACADE_URL + "/workflow/" + cloudFacadeId + "/as/" + configId + "/"
+                    + "hola";
             PutMethod method = new PutMethod(url);
             try {
                 method.setRequestEntity(new StringRequestEntity(atomicService.getId(), CloudFacadeConstants.TEXT_CONTENT_TYPE, CloudFacadeConstants.TEXT_ENCODING_TYPE));
@@ -378,6 +384,7 @@ public class Workflow {
             WorkflowException ex = null;
             try {
                 // Execute the method
+                logger.debug("Executing PUT on URL \"" + method.getURI() + "\"");
                 int statusCode = client.executeMethod(method);
                 if (statusCode != HttpStatus.SC_OK && statusCode != HttpStatus.SC_NO_CONTENT) {
                     String message = "Method failed: " + method.getStatusLine() + "\n"
@@ -412,8 +419,8 @@ public class Workflow {
         Matcher m = p.matcher(wsdlURL);
         if (m.find()) {
             String servicePath = m.group(3);
-            String atomicServiceId = requestAtomicServiceId(wsdlURL);
-            return new VPHAtomicServiceInstance(atomicServiceId, this, servicePath);
+            PathInfo pathInfo = requestPathInfo(wsdlURL);
+            return new VPHAtomicServiceInstance(pathInfo.atomicServiceId, this, servicePath, pathInfo.redirectionName);
         } else {
             String message = "Could not identify AtomicService from WSDL URL " + wsdlURL;
             logger.error(message);
@@ -425,10 +432,21 @@ public class Workflow {
     	return new VPHAtomicServiceInstance(atomicServiceId, this, servicePath);*/
     }
 
-    private String requestAtomicServiceId(String url) throws HttpException, IOException, WorkflowException {
+    private PathInfo requestPathInfo(String url) throws HttpException, IOException, WorkflowException {
+        
+        // Temporary hack till CloudFacade 1.2.0 is released
+        // Then the "real" code below this hack will work (has been tested with the beta version of CloudFacade 1.2.0)
+        // and this hack with hard-coded values can be removed
+        if (!CloudFacadeConstants.USE_NEW_CLOUDFACADE_PROTOCOL) {
+            PathInfo result = new PathInfo();
+            result.atomicServiceId = "Gaussian Blur";
+            result.redirectionName = "gimias";
+            return result;
+        }
+        
         // Create request
         HttpClient client = new HttpClient();
-        HttpMethod method = new GetMethod(url + "/get_as_id");
+        HttpMethod method = new GetMethod(url + "/get_path_info");
 
         // Add authentication
         client.getParams().setAuthenticationPreemptive(true);
@@ -437,10 +455,24 @@ public class Workflow {
         // Execute call
         client.executeMethod(method);
         if (method.getStatusCode() == HttpStatus.SC_OK) {
-            return method.getResponseBodyAsString();
+            String body = method.getResponseBodyAsString();
+            JSONObject jsonObject = JSONObject.fromObject(body);
+            PathInfo result = new PathInfo();
+            try {
+                result.atomicServiceId = (String) PropertyUtils.getProperty(jsonObject, "atomicServiceId");
+                result.redirectionName = (String) PropertyUtils.getProperty(jsonObject, "redirectionName");
+                return result;
+            } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+                String message = "Caught exception while processing the response of \"" + method.getURI()
+                        + "\" - Response body: \"" + method.getResponseBodyAsString() + "\"";
+                logger.error(message, e);
+                throw new WorkflowException(message, e);
+            }
         } else {
-            throw new WorkflowException("Bad response while trying to find out atomicServiceId: "
-                    + method.getStatusLine() + "\n" + method.getResponseBodyAsString());
+            String message = "Bad response while trying to find out path info from \"" + method.getURI() + "\": "
+                    + method.getStatusLine() + " - Body: \"" + method.getResponseBodyAsString() + "\"";
+            logger.error(message);
+            throw new WorkflowException(message);
         }
     }
 
