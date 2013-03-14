@@ -36,8 +36,6 @@ import org.vphshare.tavernaplugin.instantiation.WorkflowRegister;
 import org.vphshare.tavernaplugin.instantiation.Workflow.WorkflowException;
 import org.xml.sax.SAXException;
 
-
-
 /**
  * An asynchronous Activity that is concerned with WSDL based web-services.
  * <p>
@@ -238,7 +236,8 @@ public class VphShareActivity extends WSDLActivity {
                     logger.info("Register Workflow");
                     workflow = register.getWorkflow(workflowID);
                     logger.info("Add Atomic Service");
-                    AtomicServiceInstance service = workflow.addAtomicService(configurationBean.getWsdl(), callback.getParentProcessIdentifier());
+                    AtomicServiceInstance service = workflow.addAtomicService(configurationBean.getWsdl(),
+                            callback.getParentProcessIdentifier(), false);
                     logger.info("Get Endpoint URL");
                     newEndpoint = service.getEndpointURL();
                     logger.info("Wait for instantiation");
@@ -271,8 +270,8 @@ public class VphShareActivity extends WSDLActivity {
                         outputNames.add(port.getName());
                     }
 
-                    VphShareWsdlSoapInvoker invoker = new VphShareWsdlSoapInvoker(parser, configurationBean.getOperation(),
-                            outputNames, endpointReference, newEndpoint, TokenManager.getInstance());
+                    VphShareWsdlSoapInvoker invoker = new VphShareWsdlSoapInvoker(parser, configurationBean
+                            .getOperation(), outputNames, endpointReference, newEndpoint, TokenManager.getInstance());
                     WSDLActivityConfigurationBean bean = getConfiguration();
 
                     Map<String, Object> invokerOutputMap = invoker.invoke(invokerInputMap, bean);
