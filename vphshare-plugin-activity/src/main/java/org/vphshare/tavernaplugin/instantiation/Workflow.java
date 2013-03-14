@@ -1,7 +1,6 @@
 package org.vphshare.tavernaplugin.instantiation;
 
 import java.io.IOException;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -433,17 +432,6 @@ public class Workflow {
     }
 
     private PathInfo requestPathInfo(String url) throws HttpException, IOException, WorkflowException {
-        
-        // Temporary hack till CloudFacade 1.2.0 is released
-        // Then the "real" code below this hack will work (has been tested with the beta version of CloudFacade 1.2.0)
-        // and this hack with hard-coded values can be removed
-        if (!CloudFacadeConstants.USE_NEW_CLOUDFACADE_PROTOCOL) {
-            PathInfo result = new PathInfo();
-            result.atomicServiceId = "Gaussian Blur";
-            result.redirectionName = "gimias";
-            return result;
-        }
-        
         // Create request
         HttpClient client = new HttpClient();
         HttpMethod method = new GetMethod(url + "/get_path_info");
