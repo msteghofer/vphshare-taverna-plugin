@@ -103,18 +103,9 @@ public class Workflow {
             JSONObject jsonObject = JSONObject.fromObject(jsonResponse);
             List<Object> asInstances = WorkflowRegister.propertyToList(jsonObject, "atomicServiceInstances");
             for (Object asInstance : asInstances) {
-                // TODO: Depending on how the issue with the missing asInstanceId is resolved, we should use an
-                // instance specific id (this.asInstanceId or this.asInstanceName) for the asStatusMap. But at
-                // the moment we have neither: We don't know asInstanceId  because the HTTP method that adds
-                // the AS to the workflow doesn't return it. And we cannot use asInstanceName because the
-                // structure the is returned by the workflow status service doesn't contain the asInstanceName
-                // that we chose when we added the AS to the workflow.
-                // So right now we have to use the "atomicServiceId" - but this way we cannot
-                // distinguish 2 instances of the same AS :-(
-                String asInstanceName = (String) PropertyUtils.getProperty(asInstance, "atomicServiceId");
-                
+                String asConfigId = (String) PropertyUtils.getProperty(asInstance, "configurationId");
                 String asInstanceStatus = (String) PropertyUtils.getProperty(asInstance, "status");
-                asStatusMap.put(asInstanceName, asInstanceStatus);
+                asStatusMap.put(asConfigId, asInstanceStatus);
             }
         } catch (HttpException e) {
             String message = "HttpException while asking for workflow status";

@@ -37,14 +37,7 @@ public class VPHAtomicServiceInstance implements AtomicServiceInstance {
         }
         logger.info("Check, if AS instance { asId=\"" + atomicService.getId() + "\", asInstanceId=\"" + asInstanceId
                 + "\", asInstanceName=\"" + asInstanceName + "\" } is ready...");
-        // TODO: Depending on how the issue with the missing asInstanceId is resolved, we should use an
-        // instance specific id (this.asInstanceId or this.asInstanceName) for the status()-map. But at
-        // the moment we have neither: We don't know asInstanceId (is null in this object) because the HTTP
-        // method that adds the AS to the workflow doesn't return it. And we cannot use asInstanceName because
-        // the structure the is returned by the workflow status service doesn't contain the asInstanceName
-        // that we chose when we added the AS to the workflow.
-        // So right now we have to use the atomicService id - but this way we cannot distinguish 2 instances of the same AS :-(
-        return workflow.status().get(atomicService.getId()).equalsIgnoreCase("running") && canConnectTo(getEndpointURL());
+        return workflow.status().get(asConfigId).equalsIgnoreCase("running") && canConnectTo(getEndpointURL());
     }
 
     private boolean canConnectTo(String url) {
